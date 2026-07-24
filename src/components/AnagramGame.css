@@ -145,3 +145,41 @@ input:focus {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Nuevas animaciones de mascota */
+.mascot-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.mascot-img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.mascot-container.happy .mascot-img {
+  animation: bounce 0.5s ease infinite alternate;
+}
+
+.mascot-container.sad .mascot-img {
+  animation: shake 0.5s ease;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-20px); }
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  50% { transform: translateX(10px); }
+  75% { transform: translateX(-10px); }
+  100% { transform: translateX(0); }
+}

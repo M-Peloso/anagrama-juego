@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HUMEDALES_WORDS } from '../data/words';
+import carpinchoImg from '../assets/carpincho_mascot.png';
 import './AnagramGame.css';
 
 const AnagramGame = () => {
@@ -8,9 +9,11 @@ const AnagramGame = () => {
   const [userInput, setUserInput] = useState('');
   const [message, setMessage] = useState('');
   const [score, setScore] = useState(0);
+  const [wordPool, setWordPool] = useState([]);
+  const [mascotState, setMascotState] = useState('idle'); // 'idle', 'happy', 'sad'
 
   useEffect(() => {
-    pickNewWord();
+    pickNewWord([...HUMEDALES_WORDS]);
   }, []);
 
   const scrambleString = (str) => {
@@ -22,8 +25,18 @@ const AnagramGame = () => {
     return arr.join('');
   };
 
-  const pickNewWord = () => {
-    const randomWord = HUMEDALES_WORDS[Math.floor(Math.random() * HUMEDALES_WORDS.length)];
+  const pickNewWord = (pool = wordPool) => {
+    let currentPool = pool;
+    if (currentPool.length === 0) {
+      currentPool = [...HUMEDALES_WORDS];
+    }
+    
+    const randomIndex = Math.floor(Math.random() * currentPool.length);
+    const randomWord = currentPool[randomIndex];
+    
+    const newPool = currentPool.filter((_, index) => index !== randomIndex);
+    setWordPool(newPool);
+
     setCurrentWord(randomWord);
     
     let scrambled = scrambleString(randomWord);
@@ -33,11 +46,16 @@ const AnagramGame = () => {
     setScrambledWord(scrambled);
     setUserInput('');
     setMessage('');
+    setMascotState('idle');
   };
 
-  // Función para ignorar tildes al comparar, pero respetar la Ñ
+  // Función para ignorar tildes y ESPACIOS al comparar
   const normalize = (str) => {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "")
+      .toUpperCase();
   };
 
   const handleSubmit = (e) => {
@@ -45,11 +63,14 @@ const AnagramGame = () => {
     if (normalize(userInput) === normalize(currentWord)) {
       setMessage('¡Correcto! ¡Muy bien hecho! 🎉');
       setScore(score + 10);
+      setMascotState('happy');
       setTimeout(() => {
-        pickNewWord();
+        pickNewWord(wordPool);
       }, 2000);
     } else {
       setMessage('¡Ups! Intenta de nuevo. ❌');
+      setMascotState('sad');
+      setTimeout(() => setMascotState('idle'), 1000);
     }
   };
 
@@ -62,6 +83,10 @@ const AnagramGame = () => {
         <p className="instructions">Ordena las letras para descubrir las palabras ocultas relacionadas con la vegetación de los bañados y lagunas correntinas.</p>
         
         <p className="score">Puntuación: {score}</p>
+
+        <div className={`mascot-container ${mascotState}`}>
+          <img src={carpinchoImg} alt="Mascota Carpincho" className="mascot-img" />
+        </div>
         
         <div className="scrambled-word">
           {scrambledWord.split('').map((letter, index) => (
@@ -82,7 +107,7 @@ const AnagramGame = () => {
 
         {message && <div className={`message ${message.includes('Correcto') ? 'success' : 'error'}`}>{message}</div>}
         
-        <button onClick={pickNewWord} className="skip-btn">Saltar palabra</button>
+        <button onClick={() => pickNewWord(wordPool)} className="skip-btn">Saltar palabra</button>
       </div>
     </div>
   );
