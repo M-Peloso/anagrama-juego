@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { HUMEDALES_WORDS } from '../data/words';
-import carpinchoImg from '../assets/carpincho_mascot.png';
-import yacareImg from '../assets/yacare_mascot.png';
-import sapitoImg from '../assets/sapito_mascot.png';
 import './AnagramGame.css';
 
-const MASCOTS = [
-  { img: carpinchoImg, alt: "Carpincho" },
-  { img: yacareImg, alt: "Yacaré" },
-  { img: sapitoImg, alt: "Sapito" }
-];
+const MAX_SCORE = HUMEDALES_WORDS.length * 10;
 
 const AnagramGame = () => {
+  const [gameState, setGameState] = useState('START'); // 'START', 'PLAYING', 'GAMEOVER'
   const [currentWord, setCurrentWord] = useState('');
   const [currentHint, setCurrentHint] = useState('');
   const [showHint, setShowHint] = useState(false);
@@ -20,13 +14,14 @@ const AnagramGame = () => {
   const [message, setMessage] = useState('');
   const [score, setScore] = useState(0);
   const [wordPool, setWordPool] = useState([]);
-  const [mascotState, setMascotState] = useState('idle'); // 'idle', 'happy', 'sad'
-  const [currentMascot, setCurrentMascot] = useState(MASCOTS[0]);
-  const [gameOver, setGameOver] = useState(false);
 
-  useEffect(() => {
-    pickNewWord([...HUMEDALES_WORDS]);
-  }, []);
+  const startGame = () => {
+    setScore(0);
+    const initialPool = [...HUMEDALES_WORDS];
+    setWordPool(initialPool);
+    setGameState('PLAYING');
+    pickNewWord(initialPool);
+  };
 
   const playSound = (type) => {
     try {
@@ -37,52 +32,22 @@ const AnagramGame = () => {
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
-      const animal = currentMascot.alt;
-
       if (type === 'success') {
-        if (animal === 'Sapito') {
-          // Croac feliz agudo
-          oscillator.type = 'square';
-          oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-        } else if (animal === 'Yacaré') {
-          // Gruñido alegre
-          oscillator.type = 'sawtooth';
-          oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-          oscillator.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 0.2);
-        } else { // Carpincho
-          // Sonido gordito y suave
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
-        }
-        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
         gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + 0.3);
       } else if (type === 'error') {
-        if (animal === 'Sapito') {
-          // Croac triste grave
-          oscillator.type = 'square';
-          oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.2);
-        } else if (animal === 'Yacaré') {
-          // Gruñido enojado y bajo
-          oscillator.type = 'sawtooth';
-          oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-          oscillator.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.3);
-        } else { // Carpincho
-          // Quejido suave
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
-          oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.3);
-        }
-
-        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
         oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.3);
+        oscillator.stop(audioCtx.currentTime + 0.2);
       }
     } catch (e) {
       console.log('Audio not supported', e);
@@ -100,15 +65,14 @@ const AnagramGame = () => {
 
   const pickNewWord = (pool = wordPool) => {
     if (pool.length === 0) {
-      setGameOver(true);
+      setGameState('GAMEOVER');
       return;
     }
-    let currentPool = pool;
     
-    const randomIndex = Math.floor(Math.random() * currentPool.length);
-    const randomItem = currentPool[randomIndex];
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const randomItem = pool[randomIndex];
     
-    const newPool = currentPool.filter((_, index) => index !== randomIndex);
+    const newPool = pool.filter((_, index) => index !== randomIndex);
     setWordPool(newPool);
 
     setCurrentWord(randomItem.word);
@@ -122,9 +86,6 @@ const AnagramGame = () => {
     setScrambledWord(scrambled);
     setUserInput('');
     setMessage('');
-    setMascotState('idle');
-    
-    setCurrentMascot(MASCOTS[Math.floor(Math.random() * MASCOTS.length)]);
   };
 
   const normalize = (str) => {
@@ -138,7 +99,7 @@ const AnagramGame = () => {
   const useHint = () => {
     if (!showHint) {
       setShowHint(true);
-      setScore(Math.max(0, score - 5)); // Resta 5 puntos, no baja de 0
+      setScore(Math.max(0, score - 5)); // Resta 5 puntos
     }
   };
 
@@ -147,53 +108,69 @@ const AnagramGame = () => {
     if (normalize(userInput) === normalize(currentWord)) {
       setMessage('¡Correcto! ¡Muy bien hecho! 🎉');
       setScore(score + 10);
-      setMascotState('happy');
       playSound('success');
       setTimeout(() => {
         pickNewWord(wordPool);
       }, 2000);
     } else {
       setMessage('¡Ups! Intenta de nuevo. ❌');
-      setMascotState('sad');
       playSound('error');
-      setTimeout(() => setMascotState('idle'), 1000);
     }
   };
 
-  const resetGame = () => {
-    setScore(0);
-    setGameOver(false);
-    pickNewWord([...HUMEDALES_WORDS]);
-  };
-
-  if (gameOver) {
+  // --- PANTALLA DE INICIO ---
+  if (gameState === 'START') {
     return (
       <div className="anagram-container">
         <div className="game-card">
-          <h1>¡Juego Terminado! 🎉</h1>
-          <p className="instructions">¡Has descubierto todas las palabras de los Humedales!</p>
-          <div className="mascot-container happy">
-            <img src={currentMascot.img} alt={currentMascot.alt} className="mascot-img" />
-          </div>
-          <p className="score" style={{ fontSize: '2rem' }}>Puntuación Final: {score}</p>
-          <button onClick={resetGame} className="submit-btn" style={{ marginTop: '20px', width: '100%' }}>Volver a jugar</button>
+          <h1>Desafío Acuático de los Humedales 🌊</h1>
+          <p className="instructions">
+            Ordena las letras para descubrir las palabras ocultas relacionadas con la vegetación de los bañados y lagunas correntinas.
+          </p>
+          <button onClick={startGame} className="submit-btn" style={{ marginTop: '30px', width: '100%', fontSize: '1.5rem', padding: '20px' }}>
+            Comenzar a jugar
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!currentWord) return <div>Cargando...</div>;
+  // --- PANTALLA FINAL ---
+  if (gameState === 'GAMEOVER') {
+    const percentage = Math.round((score / MAX_SCORE) * 100);
+    
+    return (
+      <div className="anagram-container">
+        <div className="game-card">
+          <h1>¡Juego Terminado! 🎉</h1>
+          <p className="instructions">¡Has descubierto todas las palabras de los Humedales!</p>
+          
+          <div className="score-board" style={{ margin: '30px 0', padding: '20px', background: '#f1f8e9', borderRadius: '15px' }}>
+            <p style={{ fontSize: '1.2rem', color: '#33691e', marginBottom: '10px' }}>Puntuación Final: {score} pts</p>
+            <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: percentage >= 60 ? '#27ae60' : '#e67e22' }}>
+              {percentage}%
+            </p>
+          </div>
+
+          <button onClick={startGame} className="submit-btn" style={{ marginTop: '10px', width: '100%' }}>
+            Volver a jugar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- PANTALLA DE JUEGO ---
+  if (!currentWord) return null;
 
   return (
     <div className="anagram-container">
       <div className="game-card">
         <h1>Desafío Acuático de los Humedales 🌊</h1>
-        <p className="instructions">Ordena las letras para descubrir las palabras ocultas relacionadas con la vegetación de los bañados y lagunas correntinas.</p>
         
-        <p className="score">Puntuación: {score}</p>
-
-        <div className={`mascot-container ${mascotState}`}>
-          <img src={currentMascot.img} alt={currentMascot.alt} className="mascot-img" />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <p className="instructions" style={{ margin: 0, textAlign: 'left', flex: 1 }}>Ordena las letras para descubrir las palabras ocultas.</p>
+          <p className="score" style={{ margin: 0, paddingLeft: '15px' }}>Puntuación: {score}</p>
         </div>
         
         <div className="scrambled-word">
@@ -223,7 +200,9 @@ const AnagramGame = () => {
 
         {message && <div className={`message ${message.includes('Correcto') ? 'success' : 'error'}`}>{message}</div>}
         
-        <button onClick={() => pickNewWord(wordPool)} className="skip-btn">Saltar palabra</button>
+        <button onClick={() => pickNewWord(wordPool)} className="skip-btn" style={{ marginTop: '15px' }}>
+          Saltar palabra
+        </button>
       </div>
     </div>
   );
