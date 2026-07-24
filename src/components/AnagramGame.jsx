@@ -13,6 +13,8 @@ const MASCOTS = [
 
 const AnagramGame = () => {
   const [currentWord, setCurrentWord] = useState('');
+  const [currentHint, setCurrentHint] = useState('');
+  const [showHint, setShowHint] = useState(false);
   const [scrambledWord, setScrambledWord] = useState('');
   const [userInput, setUserInput] = useState('');
   const [message, setMessage] = useState('');
@@ -34,22 +36,52 @@ const AnagramGame = () => {
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
 
+      const animal = currentMascot.alt;
+
       if (type === 'success') {
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        oscillator.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
+        if (animal === 'Sapito') {
+          // Croac feliz agudo
+          oscillator.type = 'square';
+          oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+        } else if (animal === 'Yacaré') {
+          // Gruñido alegre
+          oscillator.type = 'sawtooth';
+          oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+          oscillator.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 0.2);
+        } else { // Carpincho
+          // Sonido gordito y suave
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+        }
+        
         gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + 0.3);
       } else if (type === 'error') {
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        if (animal === 'Sapito') {
+          // Croac triste grave
+          oscillator.type = 'square';
+          oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.2);
+        } else if (animal === 'Yacaré') {
+          // Gruñido enojado y bajo
+          oscillator.type = 'sawtooth';
+          oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+          oscillator.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.3);
+        } else { // Carpincho
+          // Quejido suave
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.3);
+        }
+
+        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
         oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.2);
+        oscillator.stop(audioCtx.currentTime + 0.3);
       }
     } catch (e) {
       console.log('Audio not supported', e);
@@ -72,16 +104,18 @@ const AnagramGame = () => {
     }
     
     const randomIndex = Math.floor(Math.random() * currentPool.length);
-    const randomWord = currentPool[randomIndex];
+    const randomItem = currentPool[randomIndex];
     
     const newPool = currentPool.filter((_, index) => index !== randomIndex);
     setWordPool(newPool);
 
-    setCurrentWord(randomWord);
+    setCurrentWord(randomItem.word);
+    setCurrentHint(randomItem.hint);
+    setShowHint(false);
     
-    let scrambled = scrambleString(randomWord);
-    while (scrambled === randomWord && randomWord.length > 1) {
-      scrambled = scrambleString(randomWord);
+    let scrambled = scrambleString(randomItem.word);
+    while (scrambled === randomItem.word && randomItem.word.length > 1) {
+      scrambled = scrambleString(randomItem.word);
     }
     setScrambledWord(scrambled);
     setUserInput('');
@@ -97,6 +131,13 @@ const AnagramGame = () => {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/\s+/g, "")
       .toUpperCase();
+  };
+
+  const useHint = () => {
+    if (!showHint) {
+      setShowHint(true);
+      setScore(Math.max(0, score - 5)); // Resta 5 puntos, no baja de 0
+    }
   };
 
   const handleSubmit = (e) => {
@@ -136,6 +177,14 @@ const AnagramGame = () => {
             <span key={index} className="letter-box">{letter}</span>
           ))}
         </div>
+
+        {showHint ? (
+          <div className="hint-box">💡 Pista: {currentHint}</div>
+        ) : (
+          <button type="button" onClick={useHint} className="skip-btn" style={{marginBottom: '15px', color: '#f39c12'}}>
+            💡 Ver pista (-5 puntos)
+          </button>
+        )}
 
         <form onSubmit={handleSubmit} className="input-form">
           <input
