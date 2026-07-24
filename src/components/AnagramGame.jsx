@@ -22,6 +22,7 @@ const AnagramGame = () => {
   const [wordPool, setWordPool] = useState([]);
   const [mascotState, setMascotState] = useState('idle'); // 'idle', 'happy', 'sad'
   const [currentMascot, setCurrentMascot] = useState(MASCOTS[0]);
+  const [gameOver, setGameOver] = useState(false);
 
   useEffect(() => {
     pickNewWord([...HUMEDALES_WORDS]);
@@ -98,10 +99,11 @@ const AnagramGame = () => {
   };
 
   const pickNewWord = (pool = wordPool) => {
-    let currentPool = pool;
-    if (currentPool.length === 0) {
-      currentPool = [...HUMEDALES_WORDS];
+    if (pool.length === 0) {
+      setGameOver(true);
+      return;
     }
+    let currentPool = pool;
     
     const randomIndex = Math.floor(Math.random() * currentPool.length);
     const randomItem = currentPool[randomIndex];
@@ -157,6 +159,28 @@ const AnagramGame = () => {
       setTimeout(() => setMascotState('idle'), 1000);
     }
   };
+
+  const resetGame = () => {
+    setScore(0);
+    setGameOver(false);
+    pickNewWord([...HUMEDALES_WORDS]);
+  };
+
+  if (gameOver) {
+    return (
+      <div className="anagram-container">
+        <div className="game-card">
+          <h1>¡Juego Terminado! 🎉</h1>
+          <p className="instructions">¡Has descubierto todas las palabras de los Humedales!</p>
+          <div className="mascot-container happy">
+            <img src={currentMascot.img} alt={currentMascot.alt} className="mascot-img" />
+          </div>
+          <p className="score" style={{ fontSize: '2rem' }}>Puntuación Final: {score}</p>
+          <button onClick={resetGame} className="submit-btn" style={{ marginTop: '20px', width: '100%' }}>Volver a jugar</button>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentWord) return <div>Cargando...</div>;
 
